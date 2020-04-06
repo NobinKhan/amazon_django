@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  {% include 'head.html' %}
+  <body>
+
+	    {% include 'navbar.html' %}
+	    
+		{% if messages %}
+		    <div class="mt-5 pt-4">
+			    {% for message in messages %}
+			       	<div class="alert alert-{{ message.tags }}" role="alert">
+			          {{ message }}
+			          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+			            <span aria-hidden="true">&times</span>
+			          </button>
+			        </div>
+			      {% endfor %} 
+	 		</div>
+ 		{% endif %}
+			
+		{% block content %}
+
+		{% endblock %}
+
+	    {% include 'footer.html' %}
+	  
+
+	  		<!-- loader -->
+	  	<div id="ftco-loader" class="show fullscreen"><svg class="circular" width="48px" height="48px"><circle class="path-bg" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke="#eeeeee"/><circle class="path" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke-miterlimit="10" stroke="#F96D00"/></svg></div>
+
+		{% include 'scripts.html' %}
+    
+  </body>
+</html>
