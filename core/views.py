@@ -4,6 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.views import View
 from django.utils import timezone
 from django.contrib import messages
+from .forms import CheckoutForm
 from .models import Product,OrderProduct,Order
 # Create your views here.
 
@@ -32,6 +33,21 @@ class CartView(View):
 			messages.error(self.request,'You do not have active order')
 			return redirect("/")
 
+class CheckoutView(View):
+	def get(self,request,*args,**kwargs):
+		try:
+			order = Order.objects.get(user=self.request.user,ordered=False)
+			form = CheckoutForm()
+			context = {
+				'order': order,
+				'forms': form,
+			}
+			return render(self.request,'checkout.html',context)
+		except ObjectDoesNotExist:
+			messages.error(self.request,'You do not have active order')
+			return redirect("/")
+
+
 
 def add_to_cart(request,slug):
 	#get the product.
@@ -43,7 +59,7 @@ def add_to_cart(request,slug):
 		ordered = False
 	)
 	#create_order_product.save()
-	order_qs = Order.objects.filter(user=request.user, ordered=False)
+	order_qs = Order.objects.filter(user = request.user, ordered=False)
 	if order_qs.exists():
 		order = order_qs[0]
 		order_check = order.items.filter(item__slug = take_product.slug)
@@ -63,6 +79,7 @@ def add_to_cart(request,slug):
 		order_var.items.add(create_order_product)
 		messages.info(request,"This item was added to your cart")
 	return redirect('core_main:cart')
+
 
 def remove_from_cart(request,slug):
 	#get_the_item
@@ -88,6 +105,7 @@ def remove_from_cart(request,slug):
 	else:
 		messages.info(request,"you do not have active order")
 		return redirect("core_main:cart")
+
 
 def remove_single_item_from_cart(request,slug):
 	#get the item.
@@ -121,11 +139,7 @@ def remove_single_item_from_cart(request,slug):
 
 
 def contact_view(request):
-	product = Product.objects.filter()
-	context = {
-		'obj':product
-	}
-	return render(request,'contact.html',context)
+	return render(request,'contact.html')
 
 def about_view(request):
 	return render(request,'about.html')

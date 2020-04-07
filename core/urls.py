@@ -7,6 +7,7 @@ from core.views import (
 	remove_from_cart,
 	remove_single_item_from_cart,
 	CartView,
+	CheckoutView,
 	contact_view,
 	about_view,
 	blog_view
@@ -22,6 +23,7 @@ urlpatterns = [
     path('remove_from_cart/<slug>/',remove_from_cart,name="remove_from_cart"),
     path('remove_single_item_from_cart/<slug>/',remove_single_item_from_cart,name="remove_single_item_from_cart"),
     path('cart/',CartView.as_view(),name="cart"),
+    path('checkout/',CheckoutView.as_view(),name="checkout"),
     path('contact/', contact_view),
     path('about/', about_view),
     path('blog/', blog_view),  

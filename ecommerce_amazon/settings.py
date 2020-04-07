@@ -35,6 +35,9 @@ INSTALLED_APPS = [
     #for crispy_forms...
     'crispy_forms',
 
+    #django-countries.
+    'django_countries',
+
 
     #my apps.
     'core',

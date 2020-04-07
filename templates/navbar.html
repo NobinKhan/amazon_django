@@ -1,3 +1,5 @@
+{% load cart_template_tags %}
+
 <nav class="navbar navbar-expand-lg navbar-dark ftco_navbar bg-dark ftco-navbar-light" id="ftco-navbar">
 	<div class="container">
 	    <a class="navbar-brand" href="index.html">Modist</a>
@@ -24,8 +26,8 @@
 	        	</li>
 	        	{% if request.user.is_authenticated %}
 	        		<li class="nav-item cta cta-colored">
-	        			<a href="cart.html" class="nav-link">
-	        				<span class="icon-shopping_cart"></span>[0]
+	        			<a href="{% url 'core_main:cart' %}" class="nav-link">
+	        				<span class="icon-shopping_cart"></span>[{{ request.user|cart_item_count }}]
 	        			</a>
 	        		</li>
 	        		<li class="nav-item">
