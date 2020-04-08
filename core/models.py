@@ -1,6 +1,15 @@
 from django.conf import settings
 from django.db import models
+from django_countries.fields import CountryField
 from django.urls import reverse
+
+
+ADDRESS_CHOICES = (
+	('B', 'Billing'),
+	('S', 'Shipping'),
+)
+
+
 
 class Product(models.Model):
 	tag_name = models.CharField(max_length=20,blank=True,null=True)
@@ -67,19 +76,62 @@ class Order(models.Model):
 	items = models.ManyToManyField(OrderProduct)
 	start_date = models.DateTimeField(auto_now_add=True)
 	ordered_date = models.DateTimeField()
+	billing_address = models.ForeignKey(
+		'Address', related_name='billing_address', on_delete=models.SET_NULL,blank=True,null=True)
+	shipping_address = models.ForeignKey(
+		'Address',related_name='shipping_address', on_delete=models.SET_NULL,blank=True,null=True)
+	coupon = models.ForeignKey(
+		'Cupon',on_delete=models.SET_NULL,blank=True,null=True)
 	ordered = models.BooleanField(default=False)
 
 	def __str__(self):
 		return self.user.username
-
-	
-
+	"""
 	def get_total(self):
 		total = 0
 		items_all = self.items.all()
+
 		for order_item in items_all:
 			total = total + order_item.get_final_price()
+		if self.coupon:
+			total -= self.coupon.amount
 		return total
+	"""
+	def get_total(self):
+		total = 0
+		items_all = self.items.all()
+
+		for order_item in items_all:
+			total = total + order_item.get_final_price()
+		if self.coupon:
+			total -= self.coupon.amount
+		return total
+
+class Address(models.Model):
+	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+	country = CountryField(multiple=False)
+	street_address = models.CharField(max_length=100)
+	apartment_address = models.CharField(max_length=100)
+	city = models.CharField(max_length=100)
+	zip_code = models.CharField(max_length=100)
+	phone = models.CharField(max_length=100)
+	email = models.EmailField()
+	address_type = models.CharField(max_length=1, choices=ADDRESS_CHOICES)
+	default = models.BooleanField(default=False)
+
+	def __str__(self):
+		return self.user.username
+
+	class Meta:
+		verbose_name_plural = 'Addresses'
+
+
+class Cupon(models.Model):
+	code = models.CharField(max_length=20)
+	amount = models.DecimalField(decimal_places=2,max_digits=10)
+
+	def __str__(self):
+		return self.code
 
 
 	
