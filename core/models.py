@@ -73,6 +73,7 @@ class OrderProduct(models.Model):
 
 class Order(models.Model):
 	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+	ref_code = models.CharField(max_length=20,blank=True,null=True)
 	items = models.ManyToManyField(OrderProduct)
 	start_date = models.DateTimeField(auto_now_add=True)
 	ordered_date = models.DateTimeField()
@@ -82,6 +83,10 @@ class Order(models.Model):
 		'Address',related_name='shipping_address', on_delete=models.SET_NULL,blank=True,null=True)
 	coupon = models.ForeignKey(
 		'Cupon',on_delete=models.SET_NULL,blank=True,null=True)
+	payment = models.ForeignKey(
+		'Payment',on_delete=models.SET_NULL,blank=True,null=True)
+	being_delivered = models.BooleanField(default=False)
+	received = models.BooleanField(default=False)
 	ordered = models.BooleanField(default=False)
 
 	def __str__(self):
@@ -124,6 +129,17 @@ class Address(models.Model):
 
 	class Meta:
 		verbose_name_plural = 'Addresses'
+
+
+class Payment(models.Model):
+	stripe_charge_id = models.CharField(max_length=50)
+	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,blank=True,null=True)
+	amount = models.FloatField()
+	timestamp = models.DateTimeField(auto_now_add=True)
+
+	def __str__(self):
+		return self.user.username
+
 
 
 class Cupon(models.Model):

@@ -1,3 +1,6 @@
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render,get_object_or_404,redirect
 from django.views.generic import DetailView,ListView
 from django.core.exceptions import ObjectDoesNotExist
@@ -5,8 +8,16 @@ from django.views import View
 from django.utils import timezone
 from django.contrib import messages
 from .forms import CheckoutForm,CouponForm
-from .models import Product,OrderProduct,Order,Address,Cupon
+from .models import Product,OrderProduct,Order,Address,Cupon,Payment
 # Create your views here.
+
+import random
+import string
+import stripe
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+def create_ref_code():
+	return ''.join(random.choices(string.ascii_lowercase + string.digits, k=20))
 
 
 def is_valid_form(values):
@@ -41,6 +52,119 @@ class CartView(View):
 		except ObjectDoesNotExist:
 			messages.error(self.request,'You do not have active order')
 			return redirect("/")
+
+class PaymentView(View):
+	def get(self,request,*args,**kwargs):
+		order = Order.objects.get(user=self.request.user, ordered=False)
+		if order.billing_address:
+			context = {
+				'order': order,
+				'DISPLAY_COUPON_FORM':False
+			}
+			return render(self.request,'payment.html',context)
+		else:
+			messages.warning(self.request,'You have not added billing_address')
+			return redirect("core_main:checkout")
+
+
+	def post(self,request, *args, **kwargs):
+		order = Order.objects.get(user=self.request.user, ordered=False)
+		token = self.request.POST.get('stripeToken')
+		amount= int(order.get_total() * 100)
+				
+		try:
+		     # charge once off on the token
+			charge = stripe.Charge.create(
+                amount=amount,  # cents
+                currency="usd",
+                source=token
+            )
+            # create the payment
+			payment = Payment()
+			payment.stripe_charge_id = charge['id']
+			payment.user = self.request.user
+			payment.amount = order.get_total()
+			payment.save()
+
+            # assign the payment to the order
+			order_items = order.items.all()
+			order_items.update(ordered=True)
+			for item in order_items:
+				item.save()
+
+
+			order.ordered = True
+			order.payment = payment
+			#TODO: assign ref code.
+			order.ref_code = create_ref_code()
+			order.save()
+			messages.info(self.request,"Your order was successfull")
+			return redirect("/")
+
+		except stripe.error.CardError as e:
+			body = e.json_body
+			err = body.get('erroe',{})
+			messages.warning(self.request,f"{err.get('message')}")
+			return redirect("/")
+		except stripe.error.RateLimitError as e:
+			# Too many requests made to the API too quickly
+			messages.warning(self.request,"Rate Limit Error")
+			return redirect("/")
+		except stripe.error.InvalidRequestError as e:
+			# Invalid parameters were supplied to Stripe's API
+			messages.warning(self.request,"Invalid parameters")
+			return redirect("/")
+		except stripe.error.AuthenticationError as e:
+			# Authentication with Stripe's API failed
+			# (maybe you changed API keys recently)
+			messages.warning(self.request,"Not Authenticated")
+			return redirect("/")
+		except stripe.error.APIConnectionError as e:
+			# Network communication with Stripe failed
+			messages.warning(self.request,"Network Error")
+			return redirect("/")
+		except stripe.error.StripeError as e:
+			# Display a very generic error to the user, and maybe send
+			# yourself an email
+			messages.warning(self.request,"Something went wrong.You were not chaarged.Plz try again")
+			return redirect("/")
+		except Exception as e:
+  			# Something else happened, completely unrelated to Stripe
+  			messages.warning(self.request,"A serious error.we have been notified")
+  			return redirect("/")
+
+
+class BikashView(View):
+	def get(self,request,*args,**kwargs):
+		order = Order.objects.get(user=self.request.user, ordered=False)
+		if order.billing_address:
+			context = {
+				'order': order,
+				'DISPLAY_COUPON_FORM':False
+			}
+			return render(self.request,'bikash_payment.html',context)
+		else:
+			messages.warning(self.request,'You have not added billing_address')
+			return redirect("core_main:checkout")
+
+		#have post method..
+
+class DbblView(View):
+	def get(self,request,*args,**kwargs):
+		order = Order.objects.get(user=self.request.user, ordered=False)
+		if order.billing_address:
+			context = {
+				'order': order,
+				'DISPLAY_COUPON_FORM':False
+			}
+			return render(self.request,'dbbl_payment.html',context)
+		else:
+			messages.warning(self.request,'You have not added billing_address')
+			return redirect("core_main:checkout")
+
+		#have post method..
+
+
 
 
 class CheckoutView(View):
@@ -209,12 +333,12 @@ class CheckoutView(View):
 
 				payment_option = form.cleaned_data.get('payment_option')
 					
-				if payment_option == "B":
-					return redirect('core_main:checkout')
-				elif payment_option == "S":
-					return redirect('core_main:checkout')
+				if payment_option == "S":
+					return redirect('core_main:payment', payment_option='stripe')
+				elif payment_option == "B":
+					return redirect('core_main:bikash', payment_option='bikash')
 				elif payment_option == "D":
-					return redirect('core_main:checkout')
+					return redirect('core_main:dbbl', payment_option='dbbl')
 				else:
 					messages.warning(self.request,'Invalid payment option selected')
 					return redirect('core_main:checkout')
