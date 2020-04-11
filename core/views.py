@@ -41,7 +41,7 @@ class ProductDetailView(DetailView):
 	template_name = 'product_detail.html'
 
 
-class CartView(View):
+class CartView(View,LoginRequiredMixin):
 	def get(self,request,*args,**kwargs):
 		try:
 			order = Order.objects.get(user=self.request.user,ordered=False)
@@ -53,7 +53,7 @@ class CartView(View):
 			messages.error(self.request,'You do not have active order')
 			return redirect("/")
 
-class PaymentView(View):
+class PaymentView(View,LoginRequiredMixin):
 	def get(self,request,*args,**kwargs):
 		order = Order.objects.get(user=self.request.user, ordered=False)
 		if order.billing_address:
@@ -134,7 +134,7 @@ class PaymentView(View):
   			return redirect("/")
 
 
-class BikashView(View):
+class BikashView(View,LoginRequiredMixin):
 	def get(self,request,*args,**kwargs):
 		order = Order.objects.get(user=self.request.user, ordered=False)
 		if order.billing_address:
@@ -149,7 +149,7 @@ class BikashView(View):
 
 		#have post method..
 
-class DbblView(View):
+class DbblView(View,LoginRequiredMixin):
 	def get(self,request,*args,**kwargs):
 		order = Order.objects.get(user=self.request.user, ordered=False)
 		if order.billing_address:
@@ -167,7 +167,7 @@ class DbblView(View):
 
 
 
-class CheckoutView(View):
+class CheckoutView(View,LoginRequiredMixin):
 	def get(self,request,*args,**kwargs):
 		try:
 			order = Order.objects.get(user=self.request.user,ordered=False)
@@ -349,7 +349,7 @@ class CheckoutView(View):
 
 
 
-
+@login_required()
 def add_to_cart(request,slug):
 	#get the product.
 	take_product = get_object_or_404(Product, slug=slug)
@@ -381,7 +381,7 @@ def add_to_cart(request,slug):
 		messages.info(request,"This item was added to your cart")
 	return redirect('core_main:cart')
 
-
+@login_required()
 def remove_from_cart(request,slug):
 	#get_the_item
 	take_product = get_object_or_404(Product, slug=slug)
@@ -407,7 +407,7 @@ def remove_from_cart(request,slug):
 		messages.info(request,"you do not have active order")
 		return redirect("core_main:cart")
 
-
+@login_required()
 def remove_single_item_from_cart(request,slug):
 	#get the item.
 	take_product = get_object_or_404(Product, slug=slug)
@@ -445,7 +445,7 @@ def get_coupon(request, code):
 		return redirect("core_main:checkout")
 
 
-class AddCouponView(View):
+class AddCouponView(View,LoginRequiredMixin):
 	def post(self, *args, **kwargs):
 		form = CouponForm(self.request.POST or None)
 		if form.is_valid():
